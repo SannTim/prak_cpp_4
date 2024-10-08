@@ -1,0 +1,9 @@
+1: Don
+6: Mafia
+3: Doctor
+7: Man
+2: Priest
+4: Samurai
+8: Kom
+5: Innocent
+Alive players: 1, 2, 3, 4, 5, 6, 7, 8

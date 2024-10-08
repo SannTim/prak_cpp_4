@@ -1,0 +1,8 @@
+Day 1
+Alive players: 2, 3, 5, 6, 7, 8
+Alive players: 2, 3, 5, 6, 8
+Man tries to kill 3
+Mafia tries to kill 5
+Samurai protects 5 and kills 5
+Doc saved 3
+Priest checks 2 is Priest
