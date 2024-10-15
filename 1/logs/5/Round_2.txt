@@ -1,5 +1,0 @@
-Day 2
-Alive players: 2, 3, 5, 8
-Alive players: 2, 3, 8
-Man tries to kill 3
-Priest checks 8 is Man

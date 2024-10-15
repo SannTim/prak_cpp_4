@@ -1,7 +1,0 @@
-Day 3
-Alive players: 2, 8
-Nobody was killed
-
-Alive players: 2, 8
-Man tries to kill 8
-Priest checks 8 is Man

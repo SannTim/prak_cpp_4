@@ -1,7 +1,0 @@
-1: Don
-2: Kom
-3: Innocent
-4: Innocent
-Alive players: 1, 2, 3, 4
-Kom tries to kill 3
-Mafia tries to kill 4
