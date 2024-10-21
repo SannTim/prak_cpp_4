@@ -3,7 +3,6 @@
 #include <vector>
 #include <cmath>
 #include <chrono>
-#include <random>
 #include <algorithm>
 #include <limits>
 #include "main.h"
@@ -14,20 +13,8 @@
 using namespace std;
 using namespace chrono;
 
-// Функция для генерации случайных значений для работ
-vector<int> generateJobs(int N) {
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<> dis(1, 100);  // Длительность работы от 1 до 100
 
-    vector<int> jobs(N);
-    for (int i = 0; i < N; ++i) {
-        jobs[i] = dis(gen);
-    }
-    return jobs;
-}
 
-// Функция симуляции, которая возвращает время выполнения алгоритма
 double Simulate(int N, int M, CoolingSchedule* algo, const vector<int>& jobs) {
     Mutation* mutation = new ScheduleMutation();
     ScheduleSolution* initial_solution = new ScheduleSolution(N, M, jobs);
