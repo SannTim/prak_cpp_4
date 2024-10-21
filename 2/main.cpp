@@ -7,7 +7,10 @@
 #include <algorithm>
 #include <limits>
 #include "main.h"
-
+#define STEP 100
+#define TIME_END 60
+#define MAX_M 80
+#define M_STEP 12
 using namespace std;
 using namespace chrono;
 
@@ -51,50 +54,53 @@ int main() {
     ofstream results_file("results_alg.csv");
     results_file << "N,M,boltzmann_time,cauchy_time,log_cauchy_time" << endl;
 
-    int N = 10;
+    int N = STEP;
     double avg_boltzmann = 0, avg_cauchy = 0, avg_log_cauchy = 0;
     int num_experiments = 0;
 
     while (true) {
-        int M = N / 2;
+		double average_time; 
+        for (int M = 2; M < MAX_M; M+=M_STEP){
 
-        // Генерация одинаковых наборов работ для всех законов охлаждения
-        vector<int> jobs = generateJobs(N);
+			// Генерация одинаковых наборов работ для всех законов охлаждения
+        	vector<int> jobs = generateJobs(N);
 
-        CoolingSchedule* boltzmann = new BoltzmannCooling(1000.0);
-        CoolingSchedule* cauchy = new CauchyCooling(1000.0);
-        CoolingSchedule* log_cauchy = new LogarithmicCauchyCooling(1000.0);
+        	CoolingSchedule* boltzmann = new BoltzmannCooling(1000.0);
+        	CoolingSchedule* cauchy = new CauchyCooling(1000.0);
+        	CoolingSchedule* log_cauchy = new LogarithmicCauchyCooling(1000.0);
 
-        // Запускаем симуляцию для каждого закона охлаждения
-        double boltzmann_time = Simulate(N, M, boltzmann, jobs);
-        double cauchy_time = Simulate(N, M, cauchy, jobs);
-        double log_cauchy_time = Simulate(N, M, log_cauchy, jobs);
+        	// Запускаем симуляцию для каждого закона охлаждения
+        	double boltzmann_time = Simulate(N, M, boltzmann, jobs);
+        	double cauchy_time = Simulate(N, M, cauchy, jobs);
+        	double log_cauchy_time = Simulate(N, M, log_cauchy, jobs);
 
-        // Запись результатов в файл
-        results_file << N << "," << M << "," << boltzmann_time << "," << cauchy_time << "," << log_cauchy_time << endl;
+        	// Запись результатов в файл
+        	results_file << N << "," << M << "," << boltzmann_time << "," << cauchy_time << "," << log_cauchy_time << endl;
 
-        // Обновление среднего времени для каждого закона охлаждения
-        avg_boltzmann += boltzmann_time;
-        avg_cauchy += cauchy_time;
-        avg_log_cauchy += log_cauchy_time;
-        num_experiments++;
+        	// Обновление среднего времени для каждого закона охлаждения
+        	avg_boltzmann += boltzmann_time;
+        	avg_cauchy += cauchy_time;
+        	avg_log_cauchy += log_cauchy_time;
+        	num_experiments++;
 
-        cout << "N: " << N << " M: " << M << endl;
-        cout << "Boltzmann: " << boltzmann_time << " seconds" << endl;
-        cout << "Cauchy: " << cauchy_time << " seconds" << endl;
-        cout << "Log Cauchy: " << log_cauchy_time << " seconds" << endl;
+        	cout << "N: " << N << " M: " << M << endl;
+        	cout << "Boltzmann: " << boltzmann_time << " seconds" << endl;
+        	cout << "Cauchy: " << cauchy_time << " seconds" << endl;
+        	cout << "Log Cauchy: " << log_cauchy_time << " seconds" << endl;
 
-        delete boltzmann;
-        delete cauchy;
-        delete log_cauchy;
+        	delete boltzmann;
+        	delete cauchy;
+        	delete log_cauchy;
 
-        double average_time = (boltzmann_time + cauchy_time + log_cauchy_time) / 3.0;
+        	average_time = (boltzmann_time + cauchy_time + log_cauchy_time) / 3.0;
 
-        if (average_time > 60.0) {
-            break;
+        	
+
+		}
+		if (average_time > TIME_END) {
+           break;
         }
-
-        N += 10;  // Увеличиваем N на 10 для следующего цикла
+		N += STEP; 
     }
 
     // Рассчет среднего времени
