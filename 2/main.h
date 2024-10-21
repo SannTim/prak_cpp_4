@@ -195,3 +195,14 @@ public:
     }
 };
 
+vector<int> generateJobs(int N) {
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(1, 100);
+
+    vector<int> jobs(N);
+    for (int i = 0; i < N; ++i) {
+        jobs[i] = dis(gen);
+    }
+    return jobs;
+}
