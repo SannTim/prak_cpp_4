@@ -26,9 +26,9 @@ public:
 
 class CoolingSchedule {
 public:
-	virtual ~CoolingSchedule() = default;
-    virtual double getTemperature() const = 0;  
-    virtual void cool() = 0;                    
+    virtual ~CoolingSchedule() = default;
+    virtual double getTemperature() const = 0;  // Получить текущую температуру
+    virtual void cool(int iteration) = 0;       // Охладить, учитывая номер итерации
 };
 
 class ScheduleMutation : public Mutation {
@@ -89,52 +89,48 @@ void ScheduleMutation::mutate(Solution& solution) {
 }
 
 
-// Линейное понижение температуры
-class LinearCooling : public CoolingSchedule {
+class BoltzmannCooling : public CoolingSchedule {
+    double initial_temp;
     double temperature;
-    double cooling_rate;
 public:
-    LinearCooling(double temp, double rate) : temperature(temp), cooling_rate(rate) {}
+    BoltzmannCooling(double temp) : initial_temp(temp), temperature(temp) {}
 
     double getTemperature() const override {
         return temperature;
     }
 
-    void cool() override {
-        temperature -= cooling_rate;
-        if (temperature < 0) temperature = 0;
+    void cool(int iteration) override {
+        temperature = initial_temp / log(1 + iteration);  // T = T0 / ln(1 + i)
     }
 };
 
-// Экспоненциальное понижение температуры
-class ExponentialCooling : public CoolingSchedule {
+class CauchyCooling : public CoolingSchedule {
+    double initial_temp;
     double temperature;
-    double cooling_rate;
 public:
-    ExponentialCooling(double temp, double rate) : temperature(temp), cooling_rate(rate) {}
+    CauchyCooling(double temp) : initial_temp(temp), temperature(temp) {}
 
     double getTemperature() const override {
         return temperature;
     }
 
-    void cool() override {
-        temperature *= cooling_rate;
+    void cool(int iteration) override {
+        temperature = initial_temp / (1 + iteration);  // T = T0 / (1 + i)
     }
 };
 
-// Логарифмическое понижение температуры
-class LogarithmicCooling : public CoolingSchedule {
+class LogarithmicCauchyCooling : public CoolingSchedule {
+    double initial_temp;
     double temperature;
-    double cooling_rate;
 public:
-    LogarithmicCooling(double temp, double rate) : temperature(temp), cooling_rate(rate) {}
+    LogarithmicCauchyCooling(double temp) : initial_temp(temp), temperature(temp) {}
 
     double getTemperature() const override {
         return temperature;
     }
 
-    void cool() override {
-        temperature /= (1 + cooling_rate);
+    void cool(int iteration) override {
+        temperature = initial_temp * (log(1 + iteration) / (1 + iteration));  // T = T0 * (ln(1 + i) / (1 + i))
     }
 };
 
@@ -174,14 +170,15 @@ public:
                 best_cost_local = current_cost;
             }
 
-            cooling->cool();
+            cooling->cool(i + 1);
 
-            // Синхронизация и обновление глобального лучшего решения
-            lock_guard<mutex> lock(mtx);
-            if (best_cost_local < best_cost) {
-                best_cost = best_cost_local;
-                delete global_best_solution;
-                global_best_solution = best_solution->clone();
+            {
+                lock_guard<mutex> lock(mtx);
+                if (best_cost_local < best_cost) {
+                    best_cost = best_cost_local;
+                    delete global_best_solution;
+                    global_best_solution = best_solution->clone();
+                }
             }
         }
 
@@ -191,7 +188,7 @@ public:
 
     Solution* getBestSolution() {
         lock_guard<mutex> lock(mtx);
-        return global_best_solution->clone();
+        return global_best_solution ? global_best_solution->clone() : nullptr;
     }
 };
 
