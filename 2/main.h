@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -206,3 +207,120 @@ vector<int> generateJobs(int N) {
     }
     return jobs;
 }
+
+
+class ParallelSimulatedAnnealing {
+    vector<thread> workers;
+    mutex mtx;  // Мьютекс для синхронизации
+    Solution* global_best_solution;  // Глобальное лучшее решение
+    int global_best_cost;
+    bool improved;  // Флаг для проверки улучшения решения
+    int num_iterations_no_improve;
+
+public:
+    ParallelSimulatedAnnealing() 
+        : global_best_solution(nullptr), global_best_cost(numeric_limits<int>::max()), improved(false), num_iterations_no_improve(0) {}
+
+    ~ParallelSimulatedAnnealing() {
+        if (global_best_solution) {
+            delete global_best_solution;
+        }
+    }
+
+    void run_parallel(int num_threads, int max_iterations, Solution* initial_solution, vector<CoolingSchedule*>& cooling_schedules, Mutation* mutation) {
+        // Убедимся, что очищаем вектор потоков перед запуском нового набора
+        clear_workers();
+        
+        for (int i = 0; i < num_threads; ++i) {
+            workers.emplace_back([this, initial_solution, max_iterations, i, &cooling_schedules, mutation]() {
+                this->run_single_instance(initial_solution->clone(), max_iterations, i, cooling_schedules[i], mutation);
+            });
+        }
+
+        // Ждем завершения всех потоков
+        for (auto& worker : workers) {
+            if (worker.joinable()) {
+                worker.join();
+            }
+        }
+
+        clear_workers();  // Очищаем после завершения работы
+    }
+
+    void run_single_instance(Solution* initial_solution, int max_iterations, int thread_id, CoolingSchedule* cooling_schedule, Mutation* mutation) {
+        Solution* current_solution = initial_solution->clone();
+        Solution* best_solution = initial_solution->clone();
+        int current_cost = current_solution->calculateCost();
+        int best_cost = current_cost;
+
+        for (int i = 0; i < max_iterations; ++i) {
+            Solution* new_solution = current_solution->clone();
+            mutation->mutate(*new_solution);
+
+            int new_cost = new_solution->calculateCost();
+            if (new_cost < current_cost || exp((current_cost - new_cost) / cooling_schedule->getTemperature()) > ((double) rand() / RAND_MAX)) {
+                delete current_solution;
+                current_solution = new_solution;
+                current_cost = new_cost;
+            } else {
+                delete new_solution;
+            }
+
+            if (current_cost < best_cost) {
+                delete best_solution;
+                best_solution = current_solution->clone();
+                best_cost = current_cost;
+            }
+
+            cooling_schedule->cool(i + 1);
+
+            lock_guard<mutex> lock(mtx);
+
+            if (best_cost < global_best_cost) {
+                global_best_cost = best_cost;
+                if (global_best_solution) {
+                    delete global_best_solution;
+                }
+                global_best_solution = best_solution->clone();
+                improved = true;
+                num_iterations_no_improve = 0;  // Обнуляем счетчик итераций без улучшений
+            }
+        }
+
+        delete current_solution;
+        delete best_solution;
+    }
+
+    bool has_converged() {
+        return num_iterations_no_improve >= 10;  // 10 итераций без улучшений
+    }
+
+    Solution* get_best_solution() {
+        lock_guard<mutex> lock(mtx);
+        return global_best_solution ? global_best_solution->clone() : nullptr;
+    }
+
+    int get_best_cost() {
+        lock_guard<mutex> lock(mtx);
+        return global_best_cost;
+    }
+
+    void reset_improvement_flag() {
+        improved = false;
+    }
+
+    bool is_improved() {
+        return improved;
+    }
+
+    void increment_no_improve() {
+        if (!improved) {
+            ++num_iterations_no_improve;
+        }
+    }
+
+    // Метод для очистки вектора потоков
+    void clear_workers() {
+        workers.clear();
+    }
+};

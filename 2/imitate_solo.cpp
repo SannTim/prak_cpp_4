@@ -1,3 +1,4 @@
+#include <__config>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,7 +16,7 @@ using namespace chrono;
 
 
 
-double Simulate(int N, int M, CoolingSchedule* algo, const vector<int>& jobs) {
+double Simulate(int N, int M, CoolingSchedule* algo, const vector<int>& jobs, ScheduleSolution*& final_solution) {
     Mutation* mutation = new ScheduleMutation();
     ScheduleSolution* initial_solution = new ScheduleSolution(N, M, jobs);
 
@@ -24,17 +25,16 @@ double Simulate(int N, int M, CoolingSchedule* algo, const vector<int>& jobs) {
     }
 
     SimulatedAnnealing sa(algo, mutation);
-
     auto start = high_resolution_clock::now();
-    sa.run(initial_solution, 100000, 0);  // Запуск алгоритма
-    auto end = high_resolution_clock::now();
+    
+    sa.run(initial_solution, 100000, 0);
+    final_solution = initial_solution;
 
+    auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
 
-    delete initial_solution;
     delete mutation;
-
-    return elapsed.count();  // Возвращаем время выполнения в секундах
+    return elapsed.count();
 }
 
 int main() {
@@ -55,11 +55,17 @@ int main() {
         	CoolingSchedule* boltzmann = new BoltzmannCooling(1000.0);
         	CoolingSchedule* cauchy = new CauchyCooling(1000.0);
         	CoolingSchedule* log_cauchy = new LogarithmicCauchyCooling(1000.0);
-
+			
         	// Запускаем симуляцию для каждого закона охлаждения
-        	double boltzmann_time = Simulate(N, M, boltzmann, jobs);
-        	double cauchy_time = Simulate(N, M, cauchy, jobs);
-        	double log_cauchy_time = Simulate(N, M, log_cauchy, jobs);
+			ScheduleSolution* final_boltzmann_solution = nullptr;
+            ScheduleSolution* final_cauchy_solution = nullptr;
+            ScheduleSolution* final_log_cauchy_solution = nullptr;
+
+            double boltzmann_time = Simulate(N, M, boltzmann, jobs, final_boltzmann_solution);
+            double cauchy_time = Simulate(N, M, cauchy, jobs, final_cauchy_solution);
+            double log_cauchy_time = Simulate(N, M, log_cauchy, jobs, final_log_cauchy_solution);
+	
+				
 
         	// Запись результатов в файл
         	results_file << N << "," << M << "," << boltzmann_time << "," << cauchy_time << "," << log_cauchy_time << endl;
@@ -74,6 +80,12 @@ int main() {
         	cout << "Boltzmann: " << boltzmann_time << " seconds" << endl;
         	cout << "Cauchy: " << cauchy_time << " seconds" << endl;
         	cout << "Log Cauchy: " << log_cauchy_time << " seconds" << endl;
+
+			if (final_boltzmann_solution) {
+                cout << "Boltzmann schedule at N = " << N << ", M = " << M << ":\n";
+                final_boltzmann_solution->print();
+                delete final_boltzmann_solution;  // Clean up after printing
+            }
 
         	delete boltzmann;
         	delete cauchy;
