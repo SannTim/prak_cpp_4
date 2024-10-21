@@ -44,6 +44,9 @@ public:
     ScheduleSolution(int N, int M, vector<int>& jobs) : job_times(jobs) {
         schedule.resize(N, vector<bool>(M, false));
     }
+	ScheduleSolution(int N, int M, const vector<int>& jobs) : job_times(jobs) {
+        schedule.resize(N, vector<bool>(M, false));
+    }
 
     int calculateCost() override {
         vector<int> completion_times(schedule[0].size(), 0);
