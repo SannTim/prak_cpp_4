@@ -17,7 +17,7 @@ template<class cool_class>
 ScheduleSolution solve_parallel(ScheduleSolution* initial_solution) {
 	auto col = make_unique<cool_class>(1000.0);
 	auto mut = make_unique<ScheduleMutation>();
-    SimulatedAnnealing sa(col.get(), mut);
+    SimulatedAnnealing sa(col.get(), mut.get());
     sa.run(initial_solution);
 	ScheduleSolution& sched = static_cast<ScheduleSolution&>(*sa.getBestSolution());
 	return sched;
