@@ -11,7 +11,7 @@
 #include <condition_variable>
 #define VERBOSE false
 #define OPPOSITE false
-#define NO_IMPOVE 100
+#define NO_IMPOVE 10
 using namespace std;
 
 class Solution {
