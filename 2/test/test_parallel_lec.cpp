@@ -14,8 +14,9 @@ using namespace chrono;
 std::mutex mtx;
 
 template<class cool_class>
-ScheduleSolution solve_parallel(Mutation* mut, ScheduleSolution* initial_solution) {
+ScheduleSolution solve_parallel(ScheduleSolution* initial_solution) {
 	auto col = make_unique<cool_class>(1000.0);
+	auto mut = make_unique<ScheduleMutation>();
     SimulatedAnnealing sa(col.get(), mut);
     sa.run(initial_solution);
 	ScheduleSolution& sched = static_cast<ScheduleSolution&>(*sa.getBestSolution());
@@ -33,8 +34,6 @@ int main(int argc, char* argv[]) {
     int M = stoi(argv[3]);  
     vector<int> jobs = generateJobs(N);  
 
-    auto boltzmann = make_unique<BoltzmannCooling>(1000.0);
-    auto mutation = make_unique<ScheduleMutation>();
     auto initial_solution = make_unique<ScheduleSolution>(N, M, jobs);
     auto best_global = make_unique<ScheduleSolution>(N, M, jobs);
 
@@ -47,8 +46,8 @@ int main(int argc, char* argv[]) {
 
     vector<thread> threads;
     for (int i = 0; i < num_threads; ++i) {
-        threads.emplace_back([&mutation, &boltzmann, &initial_solution, &best_global, i]() {
-            ScheduleSolution best_local = solve_parallel<BoltzmannCooling>(mutation.get(), initial_solution.get());
+        threads.emplace_back([&initial_solution, &best_global, i]() {
+            ScheduleSolution best_local = solve_parallel<BoltzmannCooling>(initial_solution.get());
 			lock_guard<mutex> lock(mtx);
 			if (VERBOSE_L){
 				cout << "Best local "<< i << ": " << endl;
