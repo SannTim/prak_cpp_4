@@ -1,4 +1,3 @@
-#include <__config>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -7,7 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include "main.h"
-#define START 5000
+#define START 300000
 #define MULTI 1.3
 #define TIME_END 60
 #define MAX_M 700
@@ -28,7 +27,7 @@ double Simulate(int N, int M, CoolingSchedule* algo, const vector<int>& jobs, Sc
     
     sa.run(initial_solution);
     final_solution = initial_solution;
-
+	std::cout << sa.getBestSolution()->calculateCost() << "\n";
     auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
 
