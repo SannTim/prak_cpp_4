@@ -13,8 +13,10 @@ using namespace chrono;
 
 std::mutex mtx;
 
-ScheduleSolution solve_parallel(CoolingSchedule* col, Mutation* mut, ScheduleSolution* initial_solution) {
-    SimulatedAnnealing sa(col, mut);
+template<class cool_class>
+ScheduleSolution solve_parallel(Mutation* mut, ScheduleSolution* initial_solution) {
+	auto col = make_unique<cool_class>(1000.0);
+    SimulatedAnnealing sa(col.get(), mut);
     sa.run(initial_solution);
 	ScheduleSolution& sched = static_cast<ScheduleSolution&>(*sa.getBestSolution());
 	return sched;
@@ -46,7 +48,7 @@ int main(int argc, char* argv[]) {
     vector<thread> threads;
     for (int i = 0; i < num_threads; ++i) {
         threads.emplace_back([&mutation, &boltzmann, &initial_solution, &best_global, i]() {
-            ScheduleSolution best_local = solve_parallel(boltzmann.get(), mutation.get(), initial_solution.get());
+            ScheduleSolution best_local = solve_parallel<BoltzmannCooling>(mutation.get(), initial_solution.get());
 			lock_guard<mutex> lock(mtx);
 			if (VERBOSE_L){
 				cout << "Best local "<< i << ": " << endl;
