@@ -1,24 +1,23 @@
-#include "main.h"
+#include "../main.h"
 #include <iostream>
 #include <vector>
 #include <chrono>
 #include <thread>
 #include <mutex>
-#include <fstream>
 
 using namespace std;
 using namespace chrono;
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
-        cerr << "Необходимо указать количество потоков, количество задач и количество процессоров." << endl;
+    if (argc < 2) {
+        cerr << "Необходимо указать количество потоков." << endl;
         return 1;
     }
 
     int num_threads = stoi(argv[1]);
-    int N = stoi(argv[2]);
-    int M = stoi(argv[3]);
-    vector<int> jobs = generateJobs(N);
+    int N = 100000;  
+    int M = 5000;  
+    vector<int> jobs = generateJobs(N);  
 
     CoolingSchedule* boltzmann = new BoltzmannCooling(1000.0);
     Mutation* mutation = new ScheduleMutation();
@@ -48,16 +47,10 @@ int main(int argc, char* argv[]) {
 
     cout << "Время выполнения: " << elapsed.count() << " секунд." << endl;
 
+    // cout << "Окончательное расписание:" << endl;
     Solution* best_solution = sa.getBestSolution();
+    // best_solution->print();
     cout << "К1: " << best_solution->calculateCost() << endl;
-
-    ofstream results_file("results_parallel.csv", ios::app);
-    if (results_file.is_open()) {
-        results_file << num_threads << "," << N << "," << M << "," << elapsed.count() << "," << best_solution->calculateCost() << endl;
-        results_file.close();
-    } else {
-        cerr << "Не удалось открыть файл для записи." << endl;
-    }
 
     delete boltzmann;
     delete mutation;

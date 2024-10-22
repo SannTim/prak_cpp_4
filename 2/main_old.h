@@ -11,7 +11,6 @@
 #include <condition_variable>
 #define VERBOSE false
 #define OPPOSITE false
-#define NO_IMPOVE 100
 using namespace std;
 
 class Solution {
@@ -31,17 +30,17 @@ public:
 class CoolingSchedule {
 public:
     virtual ~CoolingSchedule() = default;
-    virtual double getTemperature() const = 0;
-    virtual void cool(int iteration) = 0;
+    virtual double getTemperature() const = 0;  // Получить текущую температуру
+    virtual void cool(int iteration) = 0;       // Охладить, учитывая номер итерации
 };
 
 class ScheduleMutation : public Mutation {
 public:
-    ScheduleMutation();
+    ScheduleMutation(); // Конструктор для перемешивания
     void mutate(Solution& solution) override;
 
 private:
-    std::mt19937 gen;
+    std::mt19937 gen; // Генератор случайных чисел
 };
 
 class ScheduleSolution : public Solution {
@@ -89,7 +88,7 @@ public:
 };
 
 ScheduleMutation::ScheduleMutation()
-    : gen(std::random_device{}())
+    : gen(std::random_device{}()) // Инициализация генератора один раз
 {}
 
 void ScheduleMutation::mutate(Solution& solution) {
@@ -97,12 +96,14 @@ void ScheduleMutation::mutate(Solution& solution) {
     int N = sched.schedule.size();
     int M = sched.schedule[0].size();
 
+    // Генерация случайных индексов для задачи и процессора
     std::uniform_int_distribution<> job_dist(0, N - 1);
     std::uniform_int_distribution<> proc_dist(0, M - 1);
 
-    int job_idx = job_dist(gen);
-    int new_processor = proc_dist(gen);
+    int job_idx = job_dist(gen);  // Случайная задача
+    int new_processor = proc_dist(gen);  // Случайный процессор
 
+    // Назначаем задачу случайному процессору
     for (int p = 0; p < M; ++p) {
         sched.schedule[job_idx][p] = (p == new_processor);
     }
@@ -119,7 +120,7 @@ public:
     }
 
     void cool(int iteration) override {
-        temperature = initial_temp / log(1 + iteration);
+        temperature = initial_temp / log(1 + iteration);  // T = T0 / ln(1 + i)
     }
 };
 
@@ -134,7 +135,7 @@ public:
     }
 
     void cool(int iteration) override {
-        temperature = initial_temp / (1 + iteration);
+        temperature = initial_temp / (1 + iteration);  // T = T0 / (1 + i)
     }
 };
 
@@ -149,10 +150,76 @@ public:
     }
 
     void cool(int iteration) override {
-        temperature = initial_temp * (log(1 + iteration) / (1 + iteration));
+        temperature = initial_temp * (log(1 + iteration) / (1 + iteration));  // T = T0 * (ln(1 + i) / (1 + i))
     }
 };
 
+class SimulatedAnnealing {
+    CoolingSchedule* cooling;
+    Mutation* mutation;
+    mutex mtx;
+    Solution* global_best_solution;
+    int best_cost;
+
+public:
+    SimulatedAnnealing(CoolingSchedule* cooling, Mutation* mutation)
+        : cooling(cooling), mutation(mutation), global_best_solution(nullptr), best_cost(numeric_limits<int>::max()) {}
+
+    void run(Solution* initial_solution, int max_iterations, int thread_id) {
+        Solution* current_solution = initial_solution->clone();
+        Solution* best_solution = initial_solution->clone();
+		global_best_solution = initial_solution->clone();
+        int current_cost = current_solution->calculateCost();
+        int best_cost_local = current_cost;
+
+        for (int i = 0; i < max_iterations; ++i) {
+            Solution* new_solution = current_solution->clone();
+            mutation->mutate(*new_solution);
+
+            int new_cost = new_solution->calculateCost();
+            if (VERBOSE) {
+                std::cout << "cur: " << current_cost << ", new: " << new_cost << " schedule: \n";
+                new_solution->print();
+            }
+
+            double acceptance_probability = exp((current_cost - new_cost) / cooling->getTemperature());
+            if (new_cost < current_cost || acceptance_probability > ((double)rand() / RAND_MAX)) {
+                delete current_solution;
+                current_solution = new_solution;
+                current_cost = new_cost;
+            } else {
+                delete new_solution;
+            }
+
+            if (current_cost < best_cost_local) {
+                delete best_solution;
+                best_solution = current_solution->clone();
+                best_cost_local = current_cost;
+            }
+
+            cooling->cool(i + 1);
+
+            {
+                lock_guard<mutex> lock(mtx);
+                if (best_cost_local < best_cost) {
+                    best_cost = best_cost_local;
+                    if (global_best_solution) {
+                        delete global_best_solution;
+                    }
+                    global_best_solution = best_solution->clone();
+                }
+            }
+        }
+
+        delete current_solution;
+        delete best_solution;
+    }
+
+    Solution* getBestSolution() {
+        lock_guard<mutex> lock(mtx);
+        return global_best_solution ? global_best_solution->clone() : nullptr;
+    }
+};
 
 vector<int> generateJobs(int N) {
     random_device rd;
@@ -166,64 +233,4 @@ vector<int> generateJobs(int N) {
     return jobs;
 }
 
-class SimulatedAnnealing {
-private:
-    CoolingSchedule* cooling;
-    Mutation* mutation;
-    mutex mtx;
-    Solution* global_best_solution;
-    int best_cost;
-	int no_improvement_count;
-
-public:
-    SimulatedAnnealing(CoolingSchedule* cooling, Mutation* mutation)
-        : cooling(cooling), mutation(mutation), global_best_solution(nullptr), best_cost(numeric_limits<int>::max()) {
-			no_improvement_count = 0;
-		}
-
-    void run(Solution* initial_solution) {
-		Solution* current_solution = initial_solution->clone();
-		int current_cost = current_solution->calculateCost();
-    	
-    	for (int i = 0; no_improvement_count < NO_IMPOVE; ++i) {
-    	    Solution* new_solution = current_solution->clone();
-    	    mutation->mutate(*new_solution);
-			
-    	    int new_cost = new_solution->calculateCost();
-    	    double temperature = cooling->getTemperature();
-    	    if (VERBOSE) std::cout << "Bc: " << best_cost << ", K1: " << new_cost << "\n";
-    	    double acceptance_probability = exp((current_cost - new_cost) / temperature);
-    	    if (new_cost < current_cost || acceptance_probability > ((double)rand() / RAND_MAX)) {
-				if (VERBOSE) std::cout << "Ac: " << acceptance_probability << "Rand" << ((double)rand() / RAND_MAX) << "\n";
-    	        delete current_solution;
-    	        current_solution = new_solution;
-    	        current_cost = new_cost;
-    	    } else {
-    	        delete new_solution;
-    	    }
-
-    	    cooling->cool(i + 1);
-
-    	    {
-    	        lock_guard<mutex> lock(mtx);
-    	        if (current_cost < best_cost) {
-    	            best_cost = current_cost;
-    	            if (global_best_solution) {
-    	                delete global_best_solution;
-    	            }
-    	            global_best_solution = current_solution->clone();
-    	            no_improvement_count = 0;  // Сбросить счетчик улучшений
-    	        } else no_improvement_count++;
-
-    	    }
-    	}
-
-    	delete current_solution;
-    }
-
-    Solution* getBestSolution() {
-        lock_guard<mutex> lock(mtx);
-        return global_best_solution ? global_best_solution->clone() : nullptr;
-    }
-};
 
