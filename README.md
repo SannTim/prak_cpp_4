@@ -1,8 +1,8 @@
 This is my repository for c++ tasks
 
-[ ] Task 1
+[X] Task 1
 
-[ ] Task 2
+[X] Task 2
 
 [ ] Task 3
 
