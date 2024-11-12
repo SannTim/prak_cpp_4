@@ -301,8 +301,18 @@ TEST_F(Test_Grad, Hard){
 
 }
 
+// --------------------------------------------------------
+//	Проверка вывода исключения при делении на 0
+// --------------------------------------------------------
 
+class Div_by_zero: public Test{};
 
+TEST_F(Div_by_zero, Test_Zero_Exception){
+	auto ident = funcFactory.Create("ident");
+	auto con = funcFactory.Create("const", 0);
+	auto comb = ident / con;
+    EXPECT_THROW(comb->Evaluate(10), std::invalid_argument);
+}
 
 
 int main(int argc, char** argv) {

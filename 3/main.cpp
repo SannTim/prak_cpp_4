@@ -191,11 +191,15 @@ public:
 	DivFunc(TFunctionPtr lhs, TFunctionPtr rhs) : lhs_(lhs), rhs_(rhs) {}
 
     double Evaluate(double x) const override {
+		double rhsval = rhs_->Evaluate(x);
+		if (rhsval == 0) throw std::invalid_argument("Division by zero");
         return lhs_->Evaluate(x) / rhs_->Evaluate(x);
     }
 
     double Derivative(double x) const override {
-        return (lhs_->Derivative(x) * rhs_->Evaluate(x) - lhs_->Evaluate(x) * rhs_->Derivative(x)) / (rhs_->Evaluate(x)*rhs_->Evaluate(x));
+		double divis = rhs_->Evaluate(x)*rhs_->Evaluate(x);
+		if (divis == 0) throw std::invalid_argument("Division by zero");
+        return (lhs_->Derivative(x) * rhs_->Evaluate(x) - lhs_->Evaluate(x) * rhs_->Derivative(x)) / (divis);
     }
 
     std::string ToString() const override {
