@@ -64,8 +64,18 @@ private:
 class PowerFunc : public TFunction {
 public:
     explicit PowerFunc(double exponent) : exponent_(exponent) {}
-    double Evaluate(double x) const override { return std::pow(x, exponent_); }
-    double Derivative(double x) const override { return exponent_ * std::pow(x, exponent_ - 1); }
+    double Evaluate(double x) const override { 
+		if (x == 0 && exponent_< 0) 
+			throw std::invalid_argument("Division by zero");
+		return std::pow(x, exponent_); 
+	}
+
+    double Derivative(double x) const override { 
+		if (x == 0 && exponent_< 0) 
+			throw std::invalid_argument("Division by zero");
+		return exponent_ * std::pow(x, exponent_ - 1);
+	}
+
     std::string ToString() const override {return "x^" + doubleToString(exponent_);}
 
 private:
