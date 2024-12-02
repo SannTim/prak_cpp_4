@@ -1,46 +1,50 @@
 #include "CellularAutomaton.hpp"
-#include <fstream>
 
-CellularAutomaton::CellularAutomaton(const std::vector<std::vector<int>>& initialState)
-    : grid(initialState), nextGrid(size, std::vector<int>(size, 0)) {}
+CellularAutomaton::CellularAutomaton(int rows, int cols, const std::vector<int>& initialState)
+    : rows(rows), cols(cols), state(rows, std::vector<int>(cols, 0)) {
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols; ++c) {
+            state[r][c] = initialState[r * cols + c];
+        }
+    }
+}
 
-void CellularAutomaton::step() {
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
-            int liveNeighbors = countLiveNeighbors(i, j);
-            if (grid[i][j] == 1) {
-                nextGrid[i][j] = (liveNeighbors == 2 || liveNeighbors == 3) ? 1 : 0;
-            } else {
-                nextGrid[i][j] = (liveNeighbors == 3) ? 1 : 0;
+CellularAutomaton::CellularAutomaton(const std::vector<std::vector<int>>& predefinedGrid)
+    : rows(predefinedGrid.size()), 
+      cols(predefinedGrid.empty() ? 0 : predefinedGrid[0].size()), 
+      state(predefinedGrid) {}
+
+void CellularAutomaton::evolve(int generations) {
+    for (int gen = 0; gen < generations; ++gen) {
+        std::vector<std::vector<int>> newState = state;
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                int aliveNeighbors = countAliveNeighbors(r, c);
+                if (state[r][c] == 1) {
+                    newState[r][c] = (aliveNeighbors == 2 || aliveNeighbors == 3) ? 1 : 0;
+                } else {
+                    newState[r][c] = (aliveNeighbors == 3) ? 1 : 0;
+                }
             }
         }
-    }
-    grid = nextGrid;
-}
-
-const std::vector<std::vector<int>>& CellularAutomaton::getGrid() const {
-    return grid;
-}
-
-void CellularAutomaton::saveToFile(const std::string& filename) const {
-    std::ofstream file(filename);
-    for (const auto& row : grid) {
-        for (int cell : row) {
-            file << (cell ? "X" : "-");
-        }
-        file << "\n";
+        state = newState;
     }
 }
 
-int CellularAutomaton::countLiveNeighbors(int x, int y) const {
-    static const int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1};
-    static const int dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
+const std::vector<std::vector<int>>& CellularAutomaton::getCurrentState() const {
+    return state;
+}
+
+int CellularAutomaton::countAliveNeighbors(int row, int col) const {
     int count = 0;
-
-    for (int k = 0; k < 8; ++k) {
-        int nx = x + dx[k], ny = y + dy[k];
-        if (nx >= 0 && ny >= 0 && nx < size && ny < size) {
-            count += grid[nx][ny];
+    for (int dr = -1; dr <= 1; ++dr) {
+        for (int dc = -1; dc <= 1; ++dc) {
+            if (dr == 0 && dc == 0) continue;
+            int nr = row + dr;
+            int nc = col + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                count += state[nr][nc];
+            }
         }
     }
     return count;

@@ -2,22 +2,21 @@
 #define CELLULAR_AUTOMATON_HPP
 
 #include <vector>
-#include <string>
 
 class CellularAutomaton {
-    const int size = 50; // Размер поля
-    std::vector<std::vector<int>> grid;
-    std::vector<std::vector<int>> nextGrid;
+    int rows;
+    int cols;
+    std::vector<std::vector<int>> state;
 
 public:
-    CellularAutomaton(const std::vector<std::vector<int>>& initialState);
+	CellularAutomaton(const std::vector<std::vector<int>>& predefinedGrid);
+    CellularAutomaton(int rows, int cols, const std::vector<int>& initialState);
 
-    void step();
-    const std::vector<std::vector<int>>& getGrid() const;
-    void saveToFile(const std::string& filename) const;
+    void evolve(int generations);
+    const std::vector<std::vector<int>>& getCurrentState() const;
 
 private:
-    int countLiveNeighbors(int x, int y) const;
+    int countAliveNeighbors(int row, int col) const;
 };
 
 #endif // CELLULAR_AUTOMATON_HPP
